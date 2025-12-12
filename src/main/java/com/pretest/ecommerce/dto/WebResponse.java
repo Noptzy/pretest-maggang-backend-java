@@ -15,5 +15,6 @@ public class WebResponse<T> {
     private Boolean success;
     private String message;
     private T data;
+    private PagingResponse paging;
     private Object errors;
 }

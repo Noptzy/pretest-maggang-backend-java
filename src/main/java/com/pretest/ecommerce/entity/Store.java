@@ -35,7 +35,7 @@ public class Store extends BaseEntity {
     @Column(name = "image_url")
     private String imageUrl;
 
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 

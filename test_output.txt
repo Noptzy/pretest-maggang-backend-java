@@ -1,0 +1,55 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/C:/Users/nopsy/.m2/wrapper/dists/apache-maven-3.9.11/a2d47e15/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------------< com.pretest:ecommerce >------------------------
+[INFO] Building ecommerce 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.3.2:clean (default-clean) @ ecommerce ---
+[INFO] Deleting D:\Codingan\Kerjaan\Tabel Data\pretest-maggang-backend-java\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ecommerce ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ ecommerce ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 47 source files with javac [debug release 21] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ ecommerce ---
+[INFO] Copying 0 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ ecommerce ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 7 source files with javac [debug release 21] to target\test-classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/Codingan/Kerjaan/Tabel Data/pretest-maggang-backend-java/src/test/java/com/pretest/ecommerce/controller/ProductControllerTest.java:[120,9] implicitly declared classes are not supported in -source 21
+  (use -source 25 or higher to enable implicitly declared classes)
+[ERROR] /D:/Codingan/Kerjaan/Tabel Data/pretest-maggang-backend-java/src/test/java/com/pretest/ecommerce/controller/ProductControllerTest.java:[180,1] class, interface, enum, or record expected
+[ERROR] /D:/Codingan/Kerjaan/Tabel Data/pretest-maggang-backend-java/src/test/java/com/pretest/ecommerce/controller/ProductControllerTest.java:[1,1] compact source file should not have package declaration
+[INFO] 3 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  5.651 s
+[INFO] Finished at: 2025-12-13T02:08:33+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:testCompile (default-testCompile) on project ecommerce: Compilation failure: Compilation failure: 
+[ERROR] /D:/Codingan/Kerjaan/Tabel Data/pretest-maggang-backend-java/src/test/java/com/pretest/ecommerce/controller/ProductControllerTest.java:[120,9] implicitly declared classes are not supported in -source 21
+[ERROR]   (use -source 25 or higher to enable implicitly declared classes)
+[ERROR] /D:/Codingan/Kerjaan/Tabel Data/pretest-maggang-backend-java/src/test/java/com/pretest/ecommerce/controller/ProductControllerTest.java:[180,1] class, interface, enum, or record expected
+[ERROR] /D:/Codingan/Kerjaan/Tabel Data/pretest-maggang-backend-java/src/test/java/com/pretest/ecommerce/controller/ProductControllerTest.java:[1,1] compact source file should not have package declaration
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

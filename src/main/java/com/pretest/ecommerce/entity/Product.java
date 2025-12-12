@@ -33,16 +33,12 @@ public class Product extends BaseEntity {
 
     private String category;
 
-    @Column(name = "condition_info")
-    private String conditionInfo;
-
-    @Column(name = "weight_in_grams")
-    private Integer weightInGrams;
-
-    @Column(name = "variant_name")
-    private String variantName;
-
     private String color;
+
+    @Column(name = "sold_for")
+    private Integer soldFor;
+
+    private Double rating;
 
     @Column(name = "image_url")
     private String imageUrl;
