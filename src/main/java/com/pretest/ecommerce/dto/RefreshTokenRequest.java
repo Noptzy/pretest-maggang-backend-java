@@ -1,5 +1,6 @@
 package com.pretest.ecommerce.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,8 +10,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class RegisterResponse {
-    private String name;
-    private String email;
+public class RefreshTokenRequest {
 
+    @NotBlank
+    private String refreshToken;
 }

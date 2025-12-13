@@ -27,6 +27,7 @@ public class AuthController {
                 RegisterResponse registerResponse = RegisterResponse.builder()
                                 .name(user.getName())
                                 .email(user.getEmail())
+
                                 .build();
                 return WebResponse.<RegisterResponse>builder()
                                 .success(true)
@@ -41,6 +42,7 @@ public class AuthController {
                 RegisterResponse registerResponse = RegisterResponse.builder()
                                 .name(user.getName())
                                 .email(user.getEmail())
+
                                 .build();
                 return WebResponse.<RegisterResponse>builder()
                                 .success(true)
@@ -55,6 +57,17 @@ public class AuthController {
                 return WebResponse.<TokenResponse>builder()
                                 .success(true)
                                 .message("User login successfully")
+                                .data(tokenResponse)
+                                .build();
+        }
+
+        @PostMapping(path = "/refresh-token", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+        public WebResponse<TokenResponse> refreshToken(
+                        @RequestBody @Valid com.pretest.ecommerce.dto.RefreshTokenRequest request) {
+                TokenResponse tokenResponse = authService.refreshToken(request);
+                return WebResponse.<TokenResponse>builder()
+                                .success(true)
+                                .message("Token refreshed successfully")
                                 .data(tokenResponse)
                                 .build();
         }

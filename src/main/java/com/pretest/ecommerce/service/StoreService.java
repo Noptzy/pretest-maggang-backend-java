@@ -16,6 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import com.pretest.ecommerce.entity.StoreFollower;
+import com.pretest.ecommerce.entity.StoreFollowerKey;
+import com.pretest.ecommerce.repository.StoreFollowerRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +28,9 @@ public class StoreService {
 
     @Autowired
     private StoreRepository storeRepository;
+
+    @Autowired
+    private StoreFollowerRepository storeFollowerRepository;
 
     @Autowired
     private com.pretest.ecommerce.service.AuthService authService;
@@ -46,18 +53,9 @@ public class StoreService {
         store.setIsOnline(true);
         store.setRating(BigDecimal.ZERO);
         store.setImageUrl(request.getImageUrl());
-        // createdAt and updatedAt are handled by JPA Auditing (@CreatedDate,
-        // @LastModifiedDate) usually,
-        // but since we are using 'new Store()', we might need to set them manually if
-        // listeners aren't triggered on new entities before flush?
-        // BaseEntity has @EntityListeners(AuditingEntityListener.class), so it should
-        // work on save().
-        // However, if we want to return them immediately in response, we might need to
-        // rely on the returned instance from save().
-
         Store savedStore = storeRepository.save(store);
 
-        return toResponse(savedStore);
+        return toResponse(savedStore, true);
     }
 
     @Transactional
@@ -76,7 +74,7 @@ public class StoreService {
         }
 
         Store savedStore = storeRepository.save(store);
-        return toResponse(savedStore);
+        return toResponse(savedStore, false);
     }
 
     @Transactional(readOnly = true)
@@ -87,7 +85,7 @@ public class StoreService {
         Page<Store> storesPage = storeRepository.findAll(pageable);
 
         List<StoreResponse> storeResponses = storesPage.getContent().stream()
-                .map(this::toResponse)
+                .map(store -> toResponse(store, false))
                 .collect(Collectors.toList());
 
         return new PageImpl<>(storeResponses, pageable, storesPage.getTotalElements());
@@ -97,11 +95,41 @@ public class StoreService {
     public StoreResponse get(Long id) {
         Store store = storeRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Store not found"));
-        return toResponse(store);
+        return toResponse(store, true);
     }
 
-    private StoreResponse toResponse(Store store) {
+    @Transactional(readOnly = true)
+    public StoreResponse findByUser(User user) {
+        Store store = storeRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Store not found"));
+        return toResponse(store, true);
+    }
+
+    private StoreResponse toResponse(Store store, boolean includeProducts) {
         boolean isOnline = authService.isUserOnline(store.getUser().getId());
+
+        List<com.pretest.ecommerce.dto.ProductResponse> productResponses = null;
+        if (includeProducts && store.getProducts() != null) {
+            productResponses = store.getProducts().stream()
+                    .map(product -> com.pretest.ecommerce.dto.ProductResponse.builder()
+                            .id(product.getId())
+                            .name(product.getName())
+                            .description(product.getDescription())
+                            .price(product.getPrice())
+                            .stock(product.getStock())
+                            .category(product.getCategory())
+                            .color(product.getColor())
+                            .imageUrl(product.getImageUrl())
+                            .soldFor(product.getSoldFor())
+                            .rating(product.getRating())
+                            .storeId(store.getId())
+                            .storeName(store.getName())
+                            .storeLocation(store.getLocation())
+                            .storeRating(store.getRating())
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
         return StoreResponse.builder()
                 .id(store.getId())
                 .name(store.getName())
@@ -109,6 +137,46 @@ public class StoreService {
                 .rating(store.getRating())
                 .isOnline(isOnline)
                 .imageUrl(store.getImageUrl())
+                .products(productResponses)
                 .build();
+    }
+
+    @Transactional
+    public void followStore(User user, Long storeId) {
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Store not found"));
+
+        if (store.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "you can't follow your own store :3");
+        }
+
+        StoreFollowerKey key = new StoreFollowerKey(user.getId(), storeId);
+        if (storeFollowerRepository.existsById(key)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Already following this store");
+        }
+
+        StoreFollower follower = new StoreFollower();
+        follower.setId(key);
+        follower.setUser(user);
+        follower.setStore(store);
+        follower.setFollowedAt(LocalDateTime.now());
+
+        storeFollowerRepository.save(follower);
+    }
+
+    @Transactional
+    public void unfollowStore(User user, Long storeId) {
+        StoreFollowerKey key = new StoreFollowerKey(user.getId(), storeId);
+        StoreFollower follower = storeFollowerRepository.findById(key)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not following this store"));
+
+        storeFollowerRepository.delete(follower);
+    }
+
+    @Transactional
+    public void delete(User user) {
+        Store store = storeRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Store not found"));
+        storeRepository.delete(store);
     }
 }

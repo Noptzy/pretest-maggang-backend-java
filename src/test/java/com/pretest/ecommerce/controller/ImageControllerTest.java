@@ -20,6 +20,9 @@ class ImageControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.pretest.ecommerce.service.AuthService authService;
+
     @Test
     void getImage_Success() throws Exception {
         Path imageDir = Path.of("src/test/resources/images");

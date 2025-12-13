@@ -18,6 +18,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.Predicate;
+import java.util.Objects;
 
 @Service
 public class TransactionService {
@@ -31,20 +38,19 @@ public class TransactionService {
         @Transactional
         public List<TransactionResponse> checkout(UUID userId) {
                 Cart cart = cartRepository.findByUserId(userId)
-                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                                "Cart is empty"));
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Cart not found"));
 
                 List<CartItem> selectedItems = cart.getCartItems().stream()
-                                .filter(CartItem::getIsSelected)
-                                .collect(Collectors.toList());
+                        .filter(CartItem::getIsSelected)
+                        .collect(Collectors.toList());
 
                 if (selectedItems.isEmpty()) {
                         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No items selected for checkout");
                 }
 
-                // Group items by Store
                 Map<Store, List<CartItem>> itemsByStore = selectedItems.stream()
-                                .collect(Collectors.groupingBy(item -> item.getProduct().getStore()));
+                        .collect(Collectors.groupingBy(item -> item.getProduct().getStore()));
 
                 List<Transaction> transactions = new ArrayList<>();
 
@@ -56,11 +62,13 @@ public class TransactionService {
                         transaction.setUser(cart.getUser());
                         transaction.setStore(store);
                         transaction.setInvoiceNumber("INV-" + System.currentTimeMillis() + "-" + store.getId());
-                        transaction.setPaymentStatus("PENDING");
-                        transaction.setShippingStatus("PENDING");
+
+                        transaction.setStatus("WAITING_PAYMENT");
+
+                        transaction.setTransactionDate(LocalDateTime.now());
                         transaction.setCreatedAt(LocalDateTime.now());
                         transaction.setUpdatedAt(LocalDateTime.now());
-                        transaction.setShippingCost(BigDecimal.ZERO); // Determine shipping cost logic if needed
+                        transaction.setShippingCost(BigDecimal.ZERO);
 
                         List<TransactionDetail> details = new ArrayList<>();
                         BigDecimal totalAmount = BigDecimal.ZERO;
@@ -70,35 +78,21 @@ public class TransactionService {
                                 detail.setTransaction(transaction);
                                 detail.setProduct(item.getProduct());
                                 detail.setProductNameSnapshot(item.getProduct().getName());
-                                // detail.setProductVariantSnapshot(); // Logic if variants exist
                                 detail.setQuantity(item.getQuantity());
                                 detail.setPriceAtPurchase(item.getProduct().getPrice());
 
-                                // Check stock
                                 if (item.getProduct().getStock() < item.getQuantity()) {
                                         throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                                        "Stock not enough for product: " + item.getProduct().getName());
+                                                "Stock not enough for product: " + item.getProduct().getName());
                                 }
 
-                                // Deduct stock
                                 item.getProduct().setStock(item.getProduct().getStock() - item.getQuantity());
-
-                                // Increment soldFor
                                 Integer currentSold = item.getProduct().getSoldFor() == null ? 0
-                                                : item.getProduct().getSoldFor();
+                                        : item.getProduct().getSoldFor();
                                 item.getProduct().setSoldFor(currentSold + item.getQuantity());
 
-                                // Product update will be cascaded or strictly saved if needed, but since
-                                // item.getProduct() is managed entity (from cart->fetch join or lazy load in
-                                // session), it should update.
-                                // However, let's look at how cart was fetched. cartRepository.findByUserId
-                                // probably fetches products too.
-                                // To be safe, we might need to save product or let transaction commit handle it
-                                // if attached.
-                                // Since this is @Transactional, changes to managed entities are flushed.
-
                                 BigDecimal subtotal = item.getProduct().getPrice()
-                                                .multiply(BigDecimal.valueOf(item.getQuantity()));
+                                        .multiply(BigDecimal.valueOf(item.getQuantity()));
                                 detail.setSubtotal(subtotal);
                                 detail.setNote(item.getNote());
                                 detail.setCreatedAt(LocalDateTime.now());
@@ -115,41 +109,75 @@ public class TransactionService {
 
                 transactionRepository.saveAll(transactions);
 
-                // Remove bought items from cart
                 cart.getCartItems().removeAll(selectedItems);
                 cartRepository.save(cart);
 
                 return transactions.stream()
-                                .map(this::toResponse)
-                                .collect(Collectors.toList());
+                        .map(this::toResponse)
+                        .collect(Collectors.toList());
         }
 
         private TransactionResponse toResponse(Transaction transaction) {
                 List<TransactionDetailResponse> detailResponses = transaction.getTransactionDetails().stream()
-                                .map(detail -> TransactionDetailResponse.builder()
-                                                .id(detail.getId())
-                                                .productId(detail.getProduct().getId())
-                                                .productName(detail.getProductNameSnapshot())
-                                                .quantity(detail.getQuantity())
-                                                .price(detail.getPriceAtPurchase())
-                                                .subtotal(detail.getSubtotal())
-                                                .note(detail.getNote())
-                                                .imageUrl(detail.getProduct().getImageUrl())
-                                                .build())
-                                .collect(Collectors.toList());
+                        .map(detail -> TransactionDetailResponse.builder()
+                                .id(detail.getId())
+                                .productId(detail.getProduct().getId())
+                                .productName(detail.getProductNameSnapshot())
+                                .quantity(detail.getQuantity())
+                                .price(detail.getPriceAtPurchase())
+                                .subtotal(detail.getSubtotal())
+                                .note(detail.getNote())
+                                .imageUrl(detail.getProduct().getImageUrl())
+                                .build())
+                        .collect(Collectors.toList());
 
                 return TransactionResponse.builder()
-                                .id(transaction.getId())
-                                .userId(transaction.getUser().getId().toString())
-                                .storeId(transaction.getStore().getId())
-                                .storeName(transaction.getStore().getName())
-                                .invoiceNumber(transaction.getInvoiceNumber())
-                                .totalAmount(transaction.getTotalAmount())
-                                .shippingCost(transaction.getShippingCost())
-                                .paymentStatus(transaction.getPaymentStatus())
-                                .shippingStatus(transaction.getShippingStatus())
-                                .createdAt(transaction.getCreatedAt())
-                                .details(detailResponses)
-                                .build();
+                        .id(transaction.getId())
+                        .userId(transaction.getUser().getId().toString())
+                        .storeId(transaction.getStore().getId())
+                        .storeName(transaction.getStore().getName())
+                        .invoiceNumber(transaction.getInvoiceNumber())
+                        .totalAmount(transaction.getTotalAmount())
+                        .shippingCost(transaction.getShippingCost())
+                        .status(transaction.getStatus())
+                        .createdAt(transaction.getCreatedAt())
+                        .details(detailResponses)
+                        .build();
+        }
+
+        @Transactional(readOnly = true)
+        public Page<TransactionResponse> getUserTransactions(User user, int page, int limit, String status) {
+                Specification<Transaction> specification = (root, query, builder) -> {
+                        List<Predicate> predicates = new ArrayList<>();
+                        predicates.add(builder.equal(root.get("user").get("id"), user.getId()));
+
+                        if (Objects.nonNull(status) && !status.isEmpty()) {
+                                predicates.add(builder.equal(root.get("status"), status));
+                        }
+
+                        return query.where(predicates.toArray(new Predicate[0])).getRestriction();
+                };
+
+                Pageable pageable = PageRequest.of(page, limit);
+                Page<Transaction> transactions = transactionRepository.findAll(specification, pageable);
+
+                List<TransactionResponse> responses = transactions.getContent().stream()
+                        .map(this::toResponse)
+                        .collect(Collectors.toList());
+
+                return new PageImpl<>(responses, pageable, transactions.getTotalElements());
+        }
+
+        @Transactional(readOnly = true)
+        public TransactionResponse getTransactionByInvoice(User user, String invoiceNumber) {
+                Transaction transaction = transactionRepository.findByInvoiceNumber(invoiceNumber)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Transaction not found"));
+
+                if (!transaction.getUser().getId().equals(user.getId())) {
+                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Transaction does not belong to user");
+                }
+
+                return toResponse(transaction);
         }
 }

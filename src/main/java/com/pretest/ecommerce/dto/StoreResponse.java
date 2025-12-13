@@ -18,5 +18,6 @@ public class StoreResponse {
     private BigDecimal rating;
     private Boolean isOnline;
     private String imageUrl;
-
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private java.util.List<ProductResponse> products;
 }

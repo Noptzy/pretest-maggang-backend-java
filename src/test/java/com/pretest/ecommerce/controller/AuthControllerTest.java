@@ -110,8 +110,8 @@ class AuthControllerTest {
                 request.setPassword("password");
 
                 TokenResponse tokenResponse = TokenResponse.builder()
-                                .token("test_token")
-                                .expiredAt(System.currentTimeMillis() + 3600000)
+                                .accessToken("test_access_token")
+                                .refreshToken("test_refresh_token")
                                 .build();
 
                 when(authService.login(any(LoginRequest.class))).thenReturn(tokenResponse);
@@ -122,7 +122,33 @@ class AuthControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.message").value("User login successfully"))
-                                .andExpect(jsonPath("$.data.token").value("test_token"));
+                                .andExpect(jsonPath("$.data.accessToken").value("test_access_token"))
+                                .andExpect(jsonPath("$.data.refreshToken").value("test_refresh_token"));
+        }
+
+        @Test
+        void refreshTokenSuccess() throws Exception {
+                com.pretest.ecommerce.dto.RefreshTokenRequest request = new com.pretest.ecommerce.dto.RefreshTokenRequest();
+                request.setRefreshToken("Bearer valid_refresh_token");
+
+                TokenResponse tokenResponse = TokenResponse.builder()
+                                .accessToken("new_access_token")
+                                .refreshToken("new_refresh_token")
+                                .build();
+
+                when(authService.refreshToken(any(com.pretest.ecommerce.dto.RefreshTokenRequest.class)))
+                                .thenReturn(tokenResponse);
+
+                mockMvc.perform(post("/api/auth/refresh-token")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.message").value("Token refreshed successfully"))
+                                .andExpect(jsonPath("$.data.accessToken").value("new_access_token"))
+                                .andExpect(jsonPath("$.data.refreshToken").value("new_refresh_token"));
+
+                verify(authService, times(1)).refreshToken(any(com.pretest.ecommerce.dto.RefreshTokenRequest.class));
         }
 
         @Test

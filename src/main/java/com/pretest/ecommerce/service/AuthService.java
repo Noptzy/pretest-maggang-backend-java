@@ -39,8 +39,11 @@ public class AuthService {
     @Value("${noptzy.jwt.secret-key}")
     private String jwtSecretKey;
 
-    @Value("${noptzy.jwt.expiration-in-millis}")
-    private Long jwtExpiration;
+    @Value("${noptzy.jwt.access-token-expiration}")
+    private Long accessTokenExpiration;
+
+    @Value("${noptzy.jwt.refresh-token-expiration}")
+    private Long refreshTokenExpiration;
 
     @Transactional
     public User register(RegisterRequest request) {
@@ -93,22 +96,91 @@ public class AuthService {
         long now = System.currentTimeMillis();
         Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
 
-        String token = JWT.create()
+        String accessToken = JWT.create()
                 .withSubject(user.getEmail())
                 .withClaim("role", user.getRole())
                 .withClaim("userId", user.getId().toString())
                 .withIssuedAt(new Date(now))
-                .withExpiresAt(new Date(now + jwtExpiration))
+                .withExpiresAt(new Date(now + accessTokenExpiration))
                 .sign(algorithm);
 
-        redisTemplate.opsForValue().set("jwt_token:" + token, user.getId().toString(),
-                Duration.ofMillis(jwtExpiration));
+        String refreshToken = JWT.create()
+                .withSubject(user.getEmail())
+                .withClaim("role", user.getRole())
+                .withClaim("userId", user.getId().toString())
+                .withIssuedAt(new Date(now))
+                .withExpiresAt(new Date(now + refreshTokenExpiration))
+                .sign(algorithm);
+
+        redisTemplate.opsForValue().set("jwt_token:" + accessToken, user.getId().toString(),
+                Duration.ofMillis(accessTokenExpiration));
+        redisTemplate.opsForValue().set("jwt_token:" + refreshToken, user.getId().toString(),
+                Duration.ofMillis(refreshTokenExpiration));
         redisTemplate.opsForValue().set("user_online:" + user.getId().toString(), "true",
-                Duration.ofMillis(jwtExpiration));
+                Duration.ofMillis(refreshTokenExpiration));
 
         return TokenResponse.builder()
-                .token(token)
-                .expiredAt(now + jwtExpiration)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
+    }
+
+    public TokenResponse refreshToken(com.pretest.ecommerce.dto.RefreshTokenRequest request) {
+        validationService.validate(request);
+
+        String token = request.getRefreshToken();
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
+        if (!redisTemplate.hasKey("jwt_token:" + token)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or Expired Refresh Token");
+        }
+
+        Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+        JWTVerifier verifier = JWT.require(algorithm).build();
+        String userId;
+
+        try {
+            DecodedJWT decodedJWT = verifier.verify(token);
+            userId = decodedJWT.getClaim("userId").asString();
+        } catch (JWTVerificationException exception) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Refresh Token");
+        }
+
+        User user = userRepository.findById(UUID.fromString(userId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+        redisTemplate.delete("jwt_token:" + token);
+
+        long now = System.currentTimeMillis();
+
+        String newAccessToken = JWT.create()
+                .withSubject(user.getEmail())
+                .withClaim("role", user.getRole())
+                .withClaim("userId", user.getId().toString())
+                .withIssuedAt(new Date(now))
+                .withExpiresAt(new Date(now + accessTokenExpiration))
+                .sign(algorithm);
+
+        String newRefreshToken = JWT.create()
+                .withSubject(user.getEmail())
+                .withClaim("role", user.getRole())
+                .withClaim("userId", user.getId().toString())
+                .withIssuedAt(new Date(now))
+                .withExpiresAt(new Date(now + refreshTokenExpiration))
+                .sign(algorithm);
+
+        redisTemplate.opsForValue().set("jwt_token:" + newAccessToken, user.getId().toString(),
+                Duration.ofMillis(accessTokenExpiration));
+        redisTemplate.opsForValue().set("jwt_token:" + newRefreshToken, user.getId().toString(),
+                Duration.ofMillis(refreshTokenExpiration));
+        redisTemplate.opsForValue().set("user_online:" + user.getId().toString(), "true",
+                Duration.ofMillis(refreshTokenExpiration));
+
+        return TokenResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
                 .build();
     }
 
@@ -116,9 +188,14 @@ public class AuthService {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
-        if (token != null && redisTemplate.hasKey("jwt_token:" + token)) {
-            String userId = redisTemplate.opsForValue().get("jwt_token:" + token);
-            redisTemplate.delete("jwt_token:" + token);
+
+        String redisKey = "jwt_token:" + token;
+
+        if (redisTemplate.hasKey(redisKey)) {
+            String userId = redisTemplate.opsForValue().get(redisKey);
+
+            redisTemplate.delete(redisKey);
+
             if (userId != null) {
                 redisTemplate.delete("user_online:" + userId);
             }

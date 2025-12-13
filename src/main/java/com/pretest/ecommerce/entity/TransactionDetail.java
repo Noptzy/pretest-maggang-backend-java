@@ -42,4 +42,7 @@ public class TransactionDetail extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
+
+    @Column(name = "is_reviewed")
+    private Boolean isReviewed = false;
 }

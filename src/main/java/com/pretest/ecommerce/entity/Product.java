@@ -21,14 +21,20 @@ public class Product extends BaseEntity {
     private Long id;
 
     @Column(nullable = false)
+    @jakarta.validation.constraints.NotBlank(message = "Product name is required")
+    @jakarta.validation.constraints.Size(max = 100, message = "Product name cannot exceed 100 characters")
     private String name;
 
     private String description;
 
     @Column(nullable = false)
+    @jakarta.validation.constraints.NotNull(message = "Price is required")
+    @jakarta.validation.constraints.PositiveOrZero(message = "Price must be non-negative")
     private BigDecimal price;
 
     @Column(nullable = false)
+    @jakarta.validation.constraints.NotNull(message = "Stock is required")
+    @jakarta.validation.constraints.Min(value = 0, message = "Stock must be non-negative")
     private Integer stock;
 
     private String category;

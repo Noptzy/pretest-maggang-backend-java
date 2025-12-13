@@ -21,8 +21,7 @@ public class TransactionResponse {
     private String invoiceNumber;
     private BigDecimal totalAmount;
     private BigDecimal shippingCost;
-    private String paymentStatus;
-    private String shippingStatus;
+    private String status;
     private LocalDateTime createdAt;
     private List<TransactionDetailResponse> details;
 }

@@ -1,6 +1,8 @@
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
+.mvn/
+mvnw
+mvnw.cmd
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -32,7 +34,19 @@ build/
 ### VS Code ###
 .vscode/
 
-.idea/
+# Logs
+*.log
+product_test.log
 
+# Uploads
+uploads/
 .uploads/
 
+# Requests
+requests/
+
+# Misc
+compile_output.txt
+test_output.txt
+test_results.txt
+final_test_results.txt

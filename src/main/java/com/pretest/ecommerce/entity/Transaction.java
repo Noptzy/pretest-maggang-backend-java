@@ -37,11 +37,8 @@ public class Transaction extends BaseEntity {
     @Column(name = "courier_service")
     private String courierService;
 
-    @Column(name = "payment_status")
-    private String paymentStatus;
-
-    @Column(name = "shipping_status")
-    private String shippingStatus;
+    @Column(name = "status")
+    private String status;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)

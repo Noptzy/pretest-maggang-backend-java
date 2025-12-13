@@ -1,126 +1,112 @@
-# Authenticate Docs API
-BaseUrl : http://loalhost:8080/api/auth
+# Auth Module API
+BaseUrl : http://localhost:8080/api/auth
 
-## User Register
+## Register User
 Endpoint : POST /register
 
 Request Body :
 ```json
 {
-  "name": "user",
-  "email": "user@gmail.com",
-  "password": "12345678"
+  "email": "user@example.com",
+  "password": "password123",
+  "name": "User Name"
 }
 ```
 
 Response Body Success :
-
 ```json
 {
   "success": true,
   "message": "User registered successfully",
   "data": {
-    "name": "user",
-    "email": "user@gmail.com"
+    "name": "User Name",
+    "email": "user@example.com"
   }
 }
 ```
 
-Response Body Error :
-
-```json
-{
-  "success": false,
-  "message": "Email already registered"
-}
-```
-
-## Seller Register
+## Register Seller
 Endpoint : POST /register/seller
 
 Request Body :
 ```json
 {
-  "name": "user",
-  "email": "user@gmail.com",
-  "password": "12345678"
+  "email": "seller@example.com",
+  "password": "password123",
+  "name": "Seller Name"
 }
 ```
 
 Response Body Success :
-
 ```json
 {
   "success": true,
-  "message": "User registered successfully",
+  "message": "Seller registered successfully",
   "data": {
-    "name": "user",
-    "email": "user@gmail.com"
+    "name": "Seller Name",
+    "email": "seller@example.com"
   }
 }
 ```
 
-Response Body Error :
-
-```json
-{
-  "success": false,
-  "message": "Email already registered"
-}
-```
-
-## User Login
+## Login
 Endpoint : POST /login
 
 Request Body :
 ```json
 {
-  "email": "user@gmail.com",
-  "password": "12345678"
+  "email": "user@example.com",
+  "password": "password123"
 }
 ```
 
 Response Body Success :
-
 ```json
 {
   "success": true,
   "message": "User login successfully",
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwZW5nZ3VuYUBnbWFpbC5jb20iLCJyb2xlIjoiVVNFUiIsInVzZXJJZCI6Ijc2NGE5NjIyLTIyYWItNGFiMy04ZTA5LTFhZGYyYzhjZjllMSIsImlhdCI6MTc2NTU2MjYzMCwiZXhwIjoxNzY2MTY3NDMwfQ.5OBe0PTosNEN4LOK-eRt7ifNv_Lc69zcZAQ2ms3mUMc",
-    "expiredAt": 1766167430499
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "expiredAt": 1700000000,
+    "refreshToken": "uuid-refresh-token",
+    "refreshTokenExpiredAt": 1700000000
   }
 }
 ```
 
-Response Body Error :
+## Refresh Token
+Endpoint : POST /refresh-token
 
+Request Body :
 ```json
 {
-  "success": false,
-  "message": "Email not found"
+  "token": "uuid-refresh-token"
 }
 ```
 
-## User Logout
+Response Body Success :
+```json
+{
+  "success": true,
+  "message": "Token refreshed successfully",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "expiredAt": 1700000000,
+    "refreshToken": "new-uuid-refresh-token",
+    "refreshTokenExpiredAt": 1700000000
+  }
+}
+```
+
+## Logout
 Endpoint : POST /logout
 
 Headers : Authorization: Bearer <token>
 
 Response Body Success :
-
 ```json
 {
   "success": true,
   "data": "Logout Success"
-}
-```
-
-Response Body Error :
-
-```json
-{
-  "success": false,
-  "message": "Already Logged Out"
 }
 ```

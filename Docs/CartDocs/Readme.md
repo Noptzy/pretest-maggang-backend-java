@@ -1,16 +1,19 @@
-# Cart Docs API
+# Cart Module API
 BaseUrl : http://localhost:8080/api/carts
 
-## Add to Cart
+## Add To Cart
 Endpoint : POST /
+
 Headers : Authorization: Bearer <token>
+
+**Note:** Only users with role `USER` can perform this action.
 
 Request Body :
 ```json
 {
-  "productId": 101,
+  "productId": 1,
   "quantity": 2,
-  "note": "Optional note"
+  "note": "Please pack safely"
 }
 ```
 
@@ -20,34 +23,35 @@ Response Body Success :
   "success": true,
   "message": "Product added to cart successfully",
   "data": {
-    "id": "cart-uuid",
-    "totalPrice": 100000,
-    "totalQuantity": 2,
+    "id": 1,
     "items": [
-        {
-            "id": 1,
-            "productId": 101,
-            "productName": "Product Name",
-            "quantity": 2,
-            "price": 50000,
-            "totalPrice": 100000,
-            "note": "Optional note"
-        }
-    ]
+      {
+        "id": 101,
+        "productId": 1,
+        "productName": "Laptop",
+        "quantity": 2,
+        "price": 15000000,
+        "subtotal": 30000000,
+        "note": "Please pack safely",
+        "isSelected": true
+      }
+    ],
+    "totalAmount": 30000000
   }
 }
 ```
 
-Response Body Failed :
+Response Body Error :
 ```json
 {
   "success": false,
-  "message": "False to add product to cart"
+  "message": "Only users with role USER can shop"
 }
 ```
 
-## Get Cart
+## Get My Cart
 Endpoint : GET /
+
 Headers : Authorization: Bearer <token>
 
 Response Body Success :
@@ -56,33 +60,43 @@ Response Body Success :
   "success": true,
   "message": "Successfully get cart",
   "data": {
-    "id": "1",
-    "totalPrice": 100000,
-    "items": [
-      {
-        "id": 1,
-        "productId": 101,
-        "productName": "Product Name",
-        "quantity": 2,
-        "price": 50000,
-        "totalPrice": 100000,
-        "note": "Optional note"
-      }
-    ]
+    "id": 1,
+    "items": [],
+    "totalAmount": 0
   }
 }
 ```
 
-Response Body Failed :
+## Update Cart Item
+Endpoint : PUT /{cartItemId}
+
+Headers : Authorization: Bearer <token>
+
+Request Body :
+- `quantity`: (Optional) Integer
+- `note`: (Optional) String
+- `isSelected`: (Optional) Boolean
+
 ```json
 {
-  "success": false,
-  "message": "You haven't add product to cart"
+  "quantity": 3,
+  "note": "Updated note",
+  "isSelected": false
 }
 ```
 
-## Delete Product From Cart
-Endpoint : Delete /:id
+Response Body Success :
+```json
+{
+  "success": true,
+  "message": "Successfully update product in cart",
+  "data": { ... }
+}
+```
+
+## Delete Cart Item
+Endpoint : DELETE /{cartItemId}
+
 Headers : Authorization: Bearer <token>
 
 Response Body Success :
@@ -90,28 +104,6 @@ Response Body Success :
 {
   "success": true,
   "message": "Successfully delete product from cart",
-  "data": {
-    "id": "1",
-    "totalPrice": 100000,
-    "items": [
-      {
-        "id": 1,
-        "productId": 101,
-        "productName": "Product Name",
-        "quantity": 2,
-        "price": 50000,
-        "totalPrice": 100000,
-        "note": "Optional note"
-      }
-    ]
-  }
-}
-```
-
-Response Body Failed :
-```json
-{
-  "success": false,
-  "message": "Failed delete product from cart"
+  "data": { ... }
 }
 ```

@@ -85,13 +85,13 @@ class CartControllerTest {
 
                 when(authService.extractUserIdFromToken(any())).thenReturn(userId);
                 when(cartService.getCart(userId)).thenThrow(new org.springframework.web.server.ResponseStatusException(
-                                org.springframework.http.HttpStatus.NOT_FOUND, "You haven't add product to cart"));
+                                org.springframework.http.HttpStatus.NOT_FOUND, "Cart not found"));
 
                 mockMvc.perform(get("/api/carts")
                                 .header("Authorization", "test-token"))
                                 .andExpect(status().isNotFound())
                                 .andExpect(jsonPath("$.success").value(false))
-                                .andExpect(jsonPath("$.message").value("You haven't add product to cart"));
+                                .andExpect(jsonPath("$.message").value("Cart not found"));
         }
 
         @Test
@@ -130,5 +130,59 @@ class CartControllerTest {
                                 .andExpect(status().isNotFound())
                                 .andExpect(jsonPath("$.success").value(false))
                                 .andExpect(jsonPath("$.message").value("Product not found in cart"));
+        }
+
+        @Test
+        void updateCartItemSuccess() throws Exception {
+                UUID userId = UUID.randomUUID();
+                Long cartItemId = 1L;
+                CartResponse response = CartResponse.builder()
+                                .id(1L)
+                                .items(Collections.emptyList())
+                                .totalAmount(BigDecimal.TEN)
+                                .build();
+
+                com.pretest.ecommerce.dto.UpdateCartRequest request = new com.pretest.ecommerce.dto.UpdateCartRequest();
+                request.setQuantity(5);
+                request.setNote("Updated Note");
+
+                when(authService.extractUserIdFromToken(any())).thenReturn(userId);
+                when(cartService.updateCartItem(eq(userId), eq(cartItemId),
+                                any(com.pretest.ecommerce.dto.UpdateCartRequest.class)))
+                                .thenReturn(response);
+
+                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                .put("/api/carts/{id}", cartItemId)
+                                .header("Authorization", "test-token")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.message").value("Successfully update product in cart"));
+        }
+
+        @Test
+        void updateCartItemFailed() throws Exception {
+                UUID userId = UUID.randomUUID();
+                Long cartItemId = 1L;
+
+                com.pretest.ecommerce.dto.UpdateCartRequest request = new com.pretest.ecommerce.dto.UpdateCartRequest();
+                request.setQuantity(5);
+
+                when(authService.extractUserIdFromToken(any())).thenReturn(userId);
+                when(cartService.updateCartItem(eq(userId), eq(cartItemId),
+                                any(com.pretest.ecommerce.dto.UpdateCartRequest.class)))
+                                .thenThrow(new org.springframework.web.server.ResponseStatusException(
+                                                org.springframework.http.HttpStatus.NOT_FOUND,
+                                                "Cart item not found"));
+
+                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                .put("/api/carts/{id}", cartItemId)
+                                .header("Authorization", "test-token")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isNotFound())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.message").value("Cart item not found"));
         }
 }

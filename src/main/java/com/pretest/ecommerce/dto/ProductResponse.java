@@ -26,4 +26,6 @@ public class ProductResponse {
     private String storeLocation;
     private Long storeId;
     private BigDecimal storeRating;
+    private java.time.LocalDateTime createdAt;
+    private java.time.LocalDateTime updatedAt;
 }
